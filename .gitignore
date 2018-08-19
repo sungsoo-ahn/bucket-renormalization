@@ -1,0 +1,7 @@
+*.csv
+*.png
+__pycache__/
+*.pyc
+*.uai
+*.PR
+results/UAI/
