@@ -47,23 +47,23 @@ class BeliefPropagation:
             if self._is_converged(converge_thr, self.messages, old_messages):
                 break
 
-        self.belief = {}
+        self.beliefs = {}
         for var in self.model.variables:
-            self.belief[var] = product_over_(*self._message_to_(var)).normalize(inplace=False)
+            self.beliefs[var] = product_over_(*self._message_to_(var)).normalize(inplace=False)
 
         for fac in self.model.factors:
-            self.belief[fac] = product_over_(fac, *self._message_to_(fac)).normalize(inplace=False)
+            self.beliefs[fac] = product_over_(fac, *self._message_to_(fac)).normalize(inplace=False)
 
-        return self.get_logZ()
+        logZ = self.get_logZ()
+        return logZ
 
     def get_logZ(self):
         logZ = 0.0
         for var in self.model.variables:
-            logZ += (1 - self.model.degree(var)) * entropy(self.belief[var])
+            logZ += (1 - self.model.degree(var)) * entropy(self.beliefs[var])
 
         for fac in self.model.factors:
-
-            logZ += entropy(self.belief[fac], fac)
+            logZ += entropy(self.beliefs[fac], fac)
 
         return logZ
 
