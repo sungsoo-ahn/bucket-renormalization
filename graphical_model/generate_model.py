@@ -1,15 +1,10 @@
 import os
 import sys
-from copy import copy
-from factor import Factor
-from graphical_model import GraphicalModel
 import numpy as np
+from copy import copy
 from functools import reduce
-
-sys.path.extend(["inference/"])
-
-file_dir_path = os.path.dirname(os.path.realpath(__file__))
-
+from graphical_model.factor import Factor
+from graphical_model.graphical_model import GraphicalModel
 
 def ith_object_name(prefix, i):
     return prefix + str(int(i))

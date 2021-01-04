@@ -1,8 +1,8 @@
 from copy import copy
-from factor import Factor, product_over_
 import numpy as np
 from functools import reduce
 
+from graphical_model.factor import Factor, product_over_
 
 class GraphicalModel:
     def __init__(self, variables=[], factors=[]):

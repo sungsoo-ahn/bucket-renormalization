@@ -4,8 +4,7 @@ import random
 from functools import reduce
 from copy import copy
 
-sys.path.extend(["graphical_model/"])
-from factor import Factor, product_over_
+from graphical_model.factor import Factor, product_over_
 
 
 class BucketElimination:

@@ -6,7 +6,7 @@ from copy import copy
 
 class Factor:
     def __init__(self, name=None, variables=[], **kwargs):
-        if name:
+        if name is not None:
             self.name = name
         else:
             self.name = default_factor_name()
@@ -213,8 +213,12 @@ class Factor:
 
             fac.log_values += max_a
 
-        if not inplace:
+        if self.name != fac1.name:
             fac.name = default_factor_name()
+        else:
+            fac.name = self.name
+
+        if not inplace:
             return fac
 
     def sub(self, fac1, name=None, inplace=True):
@@ -243,8 +247,9 @@ class Factor:
             fac1 = fac1.copy()
             extra_variables = set(fac1.variables) - set(fac.variables)
             if extra_variables:
-                slice_ = [slice(None)] * len(fac.variables)
-                slice_.extend([np.newaxis] * len(extra_variables))
+                slice_ = tuple(
+                    [slice(None)] * len(fac.variables) + [np.newaxis] * len(extra_variables)
+                )
                 fac.log_values = fac.log_values[slice_]
 
                 fac.variables.extend(extra_variables)
@@ -253,9 +258,9 @@ class Factor:
 
             extra_variables = set(fac.variables) - set(fac1.variables)
             if extra_variables:
-                slice_ = [slice(None)] * len(fac1.variables)
-                slice_.extend([np.newaxis] * len(extra_variables))
-
+                slice_ = tuple(
+                    [slice(None)] * len(fac1.variables) + [np.newaxis] * len(extra_variables)
+                )
                 fac1.log_values = fac1.log_values[slice_]
                 fac1.variables.extend(extra_variables)
             for axis in range(fac.log_values.ndim):
@@ -282,9 +287,9 @@ class Factor:
             fac1 = fac1.copy()
             extra_variables = set(fac1.variables) - set(fac.variables)
             if extra_variables:
-                slice_ = [slice(None)] * len(fac.variables)
-                slice_.extend([np.newaxis] * len(extra_variables))
-
+                slice_ = tuple(
+                    [slice(None)] * len(fac.variables) + [np.newaxis] * len(extra_variables)
+                )
                 fac.log_values = fac.log_values[slice_]
                 fac.variables.extend(extra_variables)
                 new_variable_card = fac1.get_cardinalities_for_(extra_variables)
@@ -292,8 +297,9 @@ class Factor:
 
             extra_variables = set(fac.variables) - set(fac1.variables)
             if extra_variables:
-                slice_ = [slice(None)] * len(fac1.variables)
-                slice_.extend([np.newaxis] * len(extra_variables))
+                slice_ = tuple(
+                    [slice(None)] * len(fac1.variables) + [np.newaxis] * len(extra_variables)
+                )
 
                 fac1.log_values = fac1.log_values[slice_]
                 fac1.variables.extend(extra_variables)
@@ -384,7 +390,7 @@ def logsumexp(a, axis=None, keepdims=False):
 
 def default_factor_name(prefix="_F"):
     default_factor_name.cnt += 1
-    return prefix + str(default_factor_name.cnt)
+    return f"FACTOR_{default_factor_name.cnt}"
 
 
 default_factor_name.cnt = 0

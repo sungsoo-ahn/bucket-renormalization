@@ -3,17 +3,7 @@ from copy import copy
 import numpy as np
 import time
 
-sys.path.extend(["graphical_model/"])
-from factor import Factor, product_over_, entropy
-
-
-def default_message_name(prefix="_M"):
-    default_message_name.cnt += 1
-    return prefix + str(default_message_name.cnt)
-
-
-default_message_name.cnt = 0
-
+from graphical_model.factor import Factor, product_over_, entropy
 
 class MeanField:
     def __init__(self, model, **kwargs):
@@ -34,19 +24,39 @@ class MeanField:
             )
             self.mean_fields[var].normalize()
 
-    def run(self, max_iter=1000, converge_thr=1e-2, verbose=False):
+        self.messages = dict()
+
+    def run(self, max_iter=1000, converge_thr=1e-2):
         for t in range(max_iter):
             old_mean_field = {var: copy(self.mean_fields[var]) for var in self.model.variables}
             self._update_mean_fields()
             if self._is_converged(self.mean_fields, old_mean_field, converge_thr):
-                # if verbose:
-                #    print("Mean field converged in {} iterations.".format(t+1))
                 break
 
-        # if verbose and not self._is_converged(self.mean_fields, old_mean_field, converge_thr):
-        #    print("Mean field did not converge after {} iterations.".format(max_iter))
+        logZ = self.get_logZ()
 
-        return self.get_logZ()
+        # Change the result into a more human-readable form.
+        messages = dict()
+        for key, message in self.messages.items():
+            if key[0] in self.model.variables:
+                key = f"{key[0]}->{key[1].name}"
+            else:
+                key = f"{key[0].name}->{key[1]}"
+
+            messages[key] = message.values
+
+        marginals = dict()
+        for key, mean_field in self.mean_fields.items():
+            if key not in self.model.variables:
+                key = key.name
+
+            marginals[key] = mean_field.values
+
+        return {
+            "logZ": logZ,
+            "messages": messages,
+            "marginals": marginals,
+        }
 
     def get_logZ(self):
         logZ = 0
@@ -63,22 +73,28 @@ class MeanField:
     def _update_mean_fields(self):
         variable_order = np.random.permutation(self.model.variables)
         for var in variable_order:
+            for fac in self.model.get_adj_factors(var):
+                self.messages[(fac, var)] = self._compute_message(fac, var)
+
             next_mean_field = Factor.full_like_(self.mean_fields[var], 0.0)
             for fac in self.model.get_adj_factors(var):
-                tmp = Factor(
-                    name="tmp",
-                    variables=[var],
-                    values=np.ones(self.model.get_cardinality_for_(var)),
-                )
-                tmp = product_over_(
-                    tmp, *[self.mean_fields[var1] for var1 in fac.variables if var1 != var]
-                )
-                tmp.transpose_by_(fac.variables)
-                tmp.log_values = fac.log_values * tmp.values
-                next_mean_field = next_mean_field + tmp.marginalize_except_([var], inplace=False)
+                next_mean_field = next_mean_field + self.messages[(fac, var)]
 
             self.mean_fields[var] = next_mean_field.exp(inplace=False).normalize(inplace=False)
             self.mean_fields[var].log_values = np.nan_to_num(self.mean_fields[var].log_values)
+
+    def _compute_message(self, fac, var):
+        message = Factor(
+            name=f"{fac.name}->{var}",
+            variables=[var],
+            values=np.ones(self.model.get_cardinality_for_(var)),
+        )
+        message = product_over_(
+            message, *[self.mean_fields[var1] for var1 in fac.variables if var1 != var]
+        )
+        message.log_values = fac.log_values * message.values
+        message.marginalize_except_([var])
+        return message
 
     def _is_converged(self, mean_field, old_mean_field, converge_thr):
         for var in self.model.variables:
