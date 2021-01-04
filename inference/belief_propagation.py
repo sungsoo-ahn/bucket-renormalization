@@ -30,6 +30,16 @@ class BeliefPropagation:
                 )
                 self.messages[(var, fac)].normalize()
 
+    def _compute_marginals_var(self, var):
+        marginal = product_over_(*self._get_in_messages(var)).normalize(inplace=False)
+        marginal.name = f"MARGINAL_{var}"
+        return marginal
+
+    def _compute_marginals_fac(self, fac):
+        marginal = product_over_(fac, *self._get_in_messages(fac)).normalize(inplace=False)
+        marginal.name = f"MARGINAL_{fac.name}"
+        return marginal
+
     def run(self, max_iter=1000, converge_thr=1e-5, damp_ratio=0.1):
         for t in range(max_iter):
             old_messages = {key: item.copy() for key, item in self.messages.items()}
@@ -40,12 +50,10 @@ class BeliefPropagation:
         # Formula for computing marginals (or beliefs) from BP messages.
         self.beliefs = {}
         for var in self.model.variables:
-            self.beliefs[var] = product_over_(*self._get_in_messages(var)).normalize(inplace=False)
-            self.beliefs[var].name = f"MARGINAL_{var}"
+            self.beliefs[var] = self._compute_marginals_var(var)
 
         for fac in self.model.factors:
-            self.beliefs[fac] = product_over_(fac, *self._get_in_messages(fac)).normalize(inplace=False)
-            self.beliefs[fac].name = f"MARGINAL_{fac.name}"
+            self.beliefs[fac] = self._compute_marginals_fac(fac)
 
         logZ = self.get_logZ()
 
