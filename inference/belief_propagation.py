@@ -31,11 +31,20 @@ class BeliefPropagation:
                 self.messages[(var, fac)].normalize()
 
     def _compute_marginals_var(self, var):
+        # Let "msg" denote the messages and "b" denote the marginals (or beliefs)
+        # Let "N" denote the neighboring factors
+        # Marginal probability of variable is computed (with normalization) as follows:
+        # b(x) \propto \prod_{f\in N(x)} msg(f->x)
         marginal = product_over_(*self._get_in_messages(var)).normalize(inplace=False)
         marginal.name = f"MARGINAL_{var}"
         return marginal
 
     def _compute_marginals_fac(self, fac):
+        # Let "msg" denote the messages and "b" denote the marginals (or beliefs)
+        # Let "N" denote the neighboring variables
+        # Marginal probability of variable is computed (with normalization) as follows:
+        # b(f) \propto \prod_{x\in N(f)} msg(x->f)
+
         marginal = product_over_(fac, *self._get_in_messages(fac)).normalize(inplace=False)
         marginal.name = f"MARGINAL_{fac.name}"
         return marginal
@@ -102,12 +111,19 @@ class BeliefPropagation:
                     self.messages[(var, fac)].name = f"MESSAGE_{var}->{fac.name}"
 
     def _compute_fac2var_message(self, fac, var):
+        # Let "msg" denote the messages and N denote the neighboring variables.
+        # Let f denote a factor function.
+        # Then the message is computed (with normalization) as follows:
+        # msg(f->x1) \propto \sum_{x2, x3}f(x1, x2, x3)msg(x2->f)msg(x3->f)
         message = product_over_(fac, *[msg for msg in self._get_in_messages(fac, except_objs=[var])])
         message.marginalize_except_([var], inplace=True)
         message.normalize(inplace=True)
         return message
 
     def _compute_var2fac_message(self, var, fac):
+        # Let "msg" denote the messages and N denote the neighboring factors.
+        # Then the message is computed (with normalization) as follows:
+        # msg(x1->f) \propto \prod_{f\in N(x1)}msg(f->x1)
         messages_to_var_except_fac = self._get_in_messages(var, except_objs=[fac])
         if messages_to_var_except_fac:
             message = product_over_(*messages_to_var_except_fac).normalize(inplace=False)

@@ -76,6 +76,11 @@ class MeanField:
             for fac in self.model.get_adj_factors(var):
                 self.messages[(fac, var)] = self._compute_message(fac, var)
 
+            # "mf" denote the mean-field parameter
+            # "msg" denote the messages,
+            # "N" denote the neighboring factors
+            # Then mean field parameter is computed (with normalization) as follows:
+            # mf(x1) \propto exp(\sum_{f \in N(x1)} msg(f->x1))
             next_mean_field = Factor.full_like_(self.mean_fields[var], 0.0)
             for fac in self.model.get_adj_factors(var):
                 next_mean_field = next_mean_field + self.messages[(fac, var)]
@@ -84,11 +89,16 @@ class MeanField:
             self.mean_fields[var].log_values = np.nan_to_num(self.mean_fields[var].log_values)
 
     def _compute_message(self, fac, var):
+        # Initialize the message
         message = Factor(
             name=f"{fac.name}->{var}",
             variables=[var],
             values=np.ones(self.model.get_cardinality_for_(var)),
         )
+
+        # Let "f" denote the factor and "mf" denote the mean-field parameter.
+        # Next message "msg" can be computed as follows.
+        # msg(f->x1) = \sum_{x2, x3} f(x1, x2, x3) * mf(x2) * mf(x3)
         message = product_over_(
             message, *[self.mean_fields[var1] for var1 in fac.variables if var1 != var]
         )
