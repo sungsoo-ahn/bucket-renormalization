@@ -10,7 +10,7 @@ from bucket_elimination import BucketElimination
 
 
 class MiniBucketElimination:
-    def __init__(self, model=None, **kwargs):
+    def __init__(self, model, bound_type, **kwargs):
         self.base_logZ = 0.0
         self.model = model.copy()
         if "elimination_order" in kwargs:
@@ -26,6 +26,11 @@ class MiniBucketElimination:
             self.variables_replicated_from_ = kwargs["variables_replicated_from_"]
             self.base_logZ = kwargs["base_logZ"]
 
+        if bound_type == "lower":
+            self.contract_operator = "min"
+        elif bound_type == "upper":
+            self.contract_operator = "max"
+        
         self.initialize_relation()
 
     @classmethod
@@ -204,7 +209,7 @@ class MiniBucketElimination:
         for var in self.elimination_order:
             for i, rvar in enumerate(self.variables_replicated_from_[var]):
                 if i < len(self.variables_replicated_from_[var]) - 1:
-                    working_model.contract_variable(rvar, operator="max")
+                    working_model.contract_variable(rvar, operator=self.contract_operator)
                 else:
                     working_model.contract_variable(rvar, operator="sum")
 

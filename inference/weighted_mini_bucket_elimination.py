@@ -15,7 +15,6 @@ class WeightedMiniBucketElimination(MiniBucketElimination):
         super(WeightedMiniBucketElimination, self).__init__(model, **kwargs)
 
         self.initialize_holder_weights()
-        self.reparameterization_step_size = 0.1
         self.holder_weight_step_size = 0.1
         self.messages = dict()
 
@@ -49,6 +48,17 @@ class WeightedMiniBucketElimination(MiniBucketElimination):
                 print(t)
                 break
 
+        for var in self.renormalized_elimination_order:
+            self._forward_pass_for_(var)
+
+        return self.get_logZ()
+
+    def run_with_holder_weights(self, new_holder_weights_for_):
+        self.holder_weights_for_ = new_holder_weights_for_
+        for var in self.elimination_order:
+            for rvar in self.variables_replicated_from_[var]:
+                self._forward_pass_for_(rvar)
+                
         for var in self.renormalized_elimination_order:
             self._forward_pass_for_(var)
 
